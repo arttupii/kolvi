@@ -19,7 +19,7 @@ I2CIO ic;
 #define MIN_TEMP 250
 #define MAX_TEMP 450
 
-#define MAX_TEMPERATURE_DIFFERENCE  (1*1000)
+#define MAX_TEMPERATURE_DIFFERENCE  (10*1000)
 
 #define KEY_SHORT 1
 #define KEY_LONG 2
@@ -35,7 +35,7 @@ long selectedTemperature = 0;
 
 unsigned long idleTimer = 0;
 
-  const unsigned long idleTimerConstants[] = {0,15, 30,60, 2*60,4*60, 7*60};
+const unsigned long idleTimerConstants[] = {0,15, 30,60, 2*60,4*60, 7*60};
 
 #define PRINTF_BUF 80 // define the tmp buffer size (change if desired)
    void dbg(const char *format, ...)
@@ -67,11 +67,8 @@ void setSelectedTemperature() {
 }
 
 void readTemperatureTask() {
-     static long taskTick = millis();
-   if(taskTick+200>millis()) return;
-   taskTick = millis();
-   
-  currentTemperature += 100;
+  int v = analogRead(7);  
+  currentTemperature = (long)multiMap(v)*1000;
 }
 
 void potValueTask() {
@@ -94,11 +91,11 @@ void setup()
 
   lcd.backlight();
   lcd.home ();                   // go home
-  lcd.print("Booting...");  
+ // lcd.print("Booting...");  
   analogReference(EXTERNAL);
 
   
-  delay (500 );
+//  delay (500 );
   beep(1, 100);
   resetIdleTimer();
   potValueTask();
@@ -138,7 +135,7 @@ void printInfoTask() {
    lcd.setCursor ( 0, 0 ); 
    
    if(abs(selectedTemperature-currentTemperature)<MAX_TEMPERATURE_DIFFERENCE) {
-     lcd.print("READY       ");
+     lcd.print("READY      ");
    } else {
      if(currentTemperature/1000<potValue) {
         lcd.print("Heating    ");
@@ -167,6 +164,7 @@ void printInfoTask() {
      lcd.print(currentTemperature/1000);
      lcd.print((char)223); 
      lcd.print("C");   
+     lcd.print("   ");
    } else {
      int percent = ((potValue-MIN_TEMP)*100)/(MAX_TEMP-MIN_TEMP);
      int c = (16*percent)/100;
@@ -177,12 +175,19 @@ void printInfoTask() {
 }
 
 void heaterOff() {
+  pinMode(3, OUTPUT);  
+  digitalWrite(3, LOW); 
 }
 void heaterOn() {
+    pinMode(3, OUTPUT);  
+  digitalWrite(3, HIGH); 
 }
 void heatingTask() {
   if(currentTemperature<selectedTemperature) {
      //heating is needed 
+     heaterOn();
+  } else {
+    heaterOff();
   }
 }
 
@@ -305,5 +310,4 @@ void loop()
     printInfoTask();
   }
   heatingTask();
-  
 }
